@@ -5,12 +5,27 @@ from django.contrib.auth.models import User
 from django.contrib.auth import login, logout, authenticate
 from django.db import IntegrityError
 from django.contrib.auth.decorators import login_required
+from .models import Cotizacion
+from django.db.models import Q
+from django.core.paginator import Paginator
 
 
 @login_required
 def index(request):
+    query = request.POST.get('query', '')
+    all_results = Cotizacion.objects.filter(
+        Q(nombre_proyecto__icontains=query)
+        | Q(descripcion_proyecto__icontains=query)
+        | Q(tipo_construccion__icontains=query)
+    )
+    # Ajusta este número según tu necesidad
+    paginator = Paginator(all_results, 5)
+    page = request.GET.get('page')
+    datos = paginator.get_page(page)
+
     return render(request, 'home.html', {
-        'title': '🕵️ PowerSearch'
+        'title': '🕵️ PowerSearch',
+        'datos': datos,
     })
 
 
@@ -57,7 +72,7 @@ def sign_in(request):
         })
     else:
         user = authenticate(
-            request, username=request.POST['username'], 
+            request, username=request.POST['username'],
             password=request.POST['password']
         )
 
@@ -70,4 +85,3 @@ def sign_in(request):
         else:
             login(request, user)
             return redirect('index')
-
